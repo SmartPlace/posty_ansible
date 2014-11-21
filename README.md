@@ -7,7 +7,7 @@ List of installed packages :
 - dovecot : IMAP & POP3 service - http://www.dovecot.org/
 - spamassasin : to protect from spam - http://spamassassin.apache.org/
 - munin : for server monitoring (optional) - http://munin-monitoring.org/
-- postyAPI : for postfix administration : http://posty-soft.org/
+- postyAPI : for postfix administration - http://posty-soft.org/
 
 We are currently finishing this script : it will be released soon enough...
 As our configuration can be a bit specific the purpose of this open source project is to make sure that we build together a script easy to parameter for any usage.
