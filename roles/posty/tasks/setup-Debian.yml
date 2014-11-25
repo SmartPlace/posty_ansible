@@ -1,0 +1,123 @@
+---
+
+- name: Ensure Ruby is installed.
+  apt:
+    name: ruby-full
+    state: present
+
+- name: Ensure Git is installed
+  apt: 
+    name: git
+    state: present
+
+- name: Ensure build-essential is installed
+  apt:
+    name: build-essential
+    state: present
+
+- name: Ensure Bundler is installed
+  command: bash -lc "gem install bundler"
+
+- name: Ensure Rake is installed
+  command: bash -lc "gem install rake"
+
+- name: Ensure Apache is installed
+  apt:
+    name: apache2
+    state: present
+
+- name: Enable Apache mods.
+  file:
+    src: "/etc/apache2/mods-available/ssl.load"
+    dest: "/etc/apache2/mods-enabled/ssl.load"
+    state: link
+
+## Install Passenger
+
+- name: Ensure Passenger is installed
+  command: bash -lc "gem install passenger"
+
+- name: Ensure libcurl4-openssl-dev is installed
+  apt:
+    name: libcurl4-openssl-dev
+    state: present
+- name: Ensure apache2-threaded-dev is installed
+  apt:
+    name: apache2-threaded-dev
+    state: present
+- name: Ensure libapr1-dev is installed
+  apt:
+    name: libapr1-dev
+    state: present
+- name: Ensure libaprutil1-dev is installed
+  apt:
+    name: libaprutil1-dev
+    state: present
+- name: Ensure libmysqlclient-dev is installed
+  apt:
+    name: libmysqlclient-dev
+    state: present
+
+- name: Disable Apache sites
+  shell: ls /etc/apache2/sites-enabled | xargs -r a2dissite
+
+- name: Passenger module compile
+  shell: passenger-install-apache2-module --auto --languages ruby
+
+- name: Passenger module Apache load
+  shell: passenger-install-apache2-module --snippet | head -n1 > /etc/apache2/mods-available/passenger.load
+
+- name: Passenger module Apache conf
+  shell: passenger-install-apache2-module --snippet | tail -n+2 > /etc/apache2/mods-available/passenger.conf
+
+- name: Passenger module Apache Enable
+  file:
+    src: "/etc/apache2/mods-available/passenger.load"
+    dest: "/etc/apache2/mods-enabled/passenger.load"
+    state: link
+
+## Configure Apache
+
+- name: Apache add vhost configuration file
+  template:
+    src: 000-default.conf
+    dest: "/etc/apache2/sites-available/000-default.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Apache add vhost configuration file
+  template:
+    src: default-ssl.conf
+    dest: "/etc/apache2/sites-available/default-ssl.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Apache enable sites
+  shell: a2ensite 000-default.conf && a2ensite default-ssl.conf
+
+## Install posty_api
+
+- name: Checkout Posty API from Github
+  git: repo=https://github.com/posty/posty_api dest=/srv/posty_api accept_hostkey=yes
+
+- name: Ensure Apache has read and write rights
+  file: path="/srv/posty_api" owner=root group=www-data mode=0755 state=directory recurse=yes
+
+- name: Set Posty configuration file
+  template:
+    src: database.yml
+    dest: "/srv/posty_api/config/database.yml"
+    owner: root
+    group: www-data
+    mode: 0644
+
+- name: Bundle install
+  command: chdir=/srv/posty_api bundle install
+
+- name: Rake db:migrate
+  command: chdir=/srv/posty_api rake db:migrate RAILS_ENV="{{ posty_env }}"
+
+- name: Rake api_key:generate
+  command: chdir=/srv/posty_api rake api_key:generate RAILS_ENV="{{ posty_env }}"

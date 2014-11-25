@@ -1,0 +1,9 @@
+{
+    "servers": [
+        {
+            "caption": "posty_ansible",
+			"url": "{{ posty_webui_apiurl }}",
+			"key": "{{ posty_api_key }}"
+        }
+    ]
+}

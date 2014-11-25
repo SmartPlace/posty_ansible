@@ -1,0 +1,31 @@
+---
+
+- name: Checkout Posty WebUI from Github
+  git: repo=https://github.com/posty/posty_webui dest=/srv/posty_webui accept_hostkey=yes
+
+- name: Ensure Apache has read and write rights
+  file: path="/srv/posty_webui" owner=root group=www-data mode=0755 state=directory recurse=yes
+
+- name: WebUI
+  file:
+    src: /srv/posty_webui/dist
+    dest: /var/www/posty_webui
+    state: link
+    owner: www-data
+    group: www-data
+
+- name: Get Api Key
+  shell: chdir=/srv/posty_api echo ApiKey.first.access_token | RACK_ENV=production racksh | egrep -o [0-9a-z]{32}
+  register: _api_key
+
+- name: Create api_key variable.
+  set_fact:
+    posty_api_key: "{{ _api_key.stdout }}"
+
+- name: WebUI
+  template:
+    src: settings.json
+    dest: /srv/posty_webui/dist/settings.json
+    owner: root
+    group: www-data
+    mode: 0644
